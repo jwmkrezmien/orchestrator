@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Webobject index{% endblock %}
+
+{% block body %}
+    <h1>Webobject index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Ipaddress</th>
+                <th>Url</th>
+                <th>Domain</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for webobject in webobjects %}
+            <tr>
+                <td>{{ webobject.id }}</td>
+                <td>{{ webobject.name }}</td>
+                <td>{{ webobject.ipaddress }}</td>
+                <td>{{ webobject.url }}</td>
+                <td>{{ webobject.domain }}</td>
+                <td>
+                    <a href="{{ path('webobject_show', {'id': webobject.id}) }}">show</a>
+                    <a href="{{ path('webobject_edit', {'id': webobject.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('webobject_new') }}">Create new</a>
+{% endblock %}

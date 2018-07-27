@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Webobject{% endblock %}
+
+{% block body %}
+
+    {{ dump(webobject) }}
+
+    <h1>Webobject</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ webobject.id }}</td>
+            </tr>
+            <tr>
+                <th>Name</th>
+                <td>{{ webobject.name }}</td>
+            </tr>
+            <tr>
+                <th>Ipaddress</th>
+                <td>{{ webobject.ipaddress }}</td>
+            </tr>
+            <tr>
+                <th>Url</th>
+                <td>{{ webobject.url }}</td>
+            </tr>
+            <tr>
+                <th>Domain</th>
+                <td>{{ webobject.domain }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('webobject_index') }}">back to list</a>
+
+    <a href="{{ path('webobject_edit', {'id': webobject.id}) }}">edit</a>
+
+    {{ include('webobject/_delete_form.html.twig') }}
+{% endblock %}

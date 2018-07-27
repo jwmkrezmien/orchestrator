@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New Webobject{% endblock %}
+
+{% block body %}
+    <h1>Create new Webobject</h1>
+
+    {{ include('webobject/_form.html.twig') }}
+
+    <a href="{{ path('webobject_index') }}">back to list</a>
+{% endblock %}

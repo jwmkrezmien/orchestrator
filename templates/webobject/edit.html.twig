@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Webobject{% endblock %}
+
+{% block body %}
+    <h1>Edit Webobject</h1>
+
+    {{ include('webobject/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('webobject_index') }}">back to list</a>
+
+    {{ include('webobject/_delete_form.html.twig') }}
+{% endblock %}
