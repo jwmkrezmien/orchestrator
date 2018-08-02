@@ -24,20 +24,35 @@ class Webobject
     private $name;
 
     /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $subdomain;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $hostname;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $suffix;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $registrabledomain;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $fullhost;
+
+    /**
      * @Gedmo\Versioned
      * @ORM\Column(type="string", length=255)
      */
-    private $ipaddress;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $url;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $domain;
+    private $ip;
 
     /**
      * @Gedmo\Slug(fields={"name"})
@@ -62,38 +77,74 @@ class Webobject
         return $this;
     }
 
-    public function getIpaddress(): ?string
+    public function getSubdomain(): ?string
     {
-        return $this->ipaddress;
+        return $this->subdomain;
     }
 
-    public function setIpaddress(string $ipaddress): self
+    public function setSubdomain(string $subdomain): self
     {
-        $this->ipaddress = $ipaddress;
+        $this->subdomain = $subdomain;
 
         return $this;
     }
 
-    public function getUrl(): ?string
+    public function getHostname(): ?string
     {
-        return $this->url;
+        return $this->hostname;
     }
 
-    public function setUrl(string $url): self
+    public function setHostname(string $hostname): self
     {
-        $this->url = $url;
+        $this->hostname = $hostname;
 
         return $this;
     }
 
-    public function getDomain(): ?string
+    public function getSuffix(): ?string
     {
-        return $this->domain;
+        return $this->suffix;
     }
 
-    public function setDomain(string $domain): self
+    public function setSuffix(string $suffix): self
     {
-        $this->domain = $domain;
+        $this->suffix = $suffix;
+
+        return $this;
+    }
+
+    public function getRegistrableDomain(): ?string
+    {
+        return $this->registrabledomain;
+    }
+
+    public function setRegistrableDomain(string $registrabledomain): self
+    {
+        $this->registrabledomain = $registrabledomain;
+
+        return $this;
+    }
+
+    public function getFullHost(): ?string
+    {
+        return $this->fullhost;
+    }
+
+    public function setFullHost(string $fullhost): self
+    {
+        $this->fullhost = $fullhost;
+
+        return $this;
+    }
+
+    public function getIp(): ?string
+    {
+        return $this->ip;
+    }
+
+    public function setIp(string $ip): self
+    {
+        $this->ip = $ip;
 
         return $this;
     }

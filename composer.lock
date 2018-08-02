@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b1f8d30d6a1e194ca9600d334de43154",
+    "content-hash": "b95f79c228229d1d98e32cee66c297ef",
     "packages": [
         {
             "name": "behat/transliterator",
@@ -5352,6 +5352,46 @@
             "time": "2018-01-29T19:49:41+00:00"
         },
         {
+            "name": "willdurand/nmap",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/willdurand/nmap.git",
+                "reference": "1822df3241e93abab20029067da7a6a249730b8e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/willdurand/nmap/zipball/1822df3241e93abab20029067da7a6a249730b8e",
+                "reference": "1822df3241e93abab20029067da7a6a249730b8e",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0",
+                "symfony/process": "~2.0|~3.0|~4.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~3.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Nmap": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "William Durand",
+                    "email": "william.durand1@gmail.com"
+                }
+            ],
+            "description": "nmap is a PHP wrapper for Nmap, a free security scanner for network exploration.",
+            "time": "2018-03-13T20:15:44+00:00"
+        },
+        {
             "name": "zendframework/zend-code",
             "version": "3.3.0",
             "source": {
@@ -6318,7 +6358,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "symfony/lts": 20
+        "symfony/lts": 20,
+        "willdurand/nmap": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

@@ -45,44 +45,14 @@ class WebobjectConverter
         {
             case ($this->result->isIp()):
 
-                return $this->result->getFullHost();
+                return 'yes';
                 break;
 
             case ($this->result->isValidDomain()):
 
-                return gethostbynamel($this->result->getFullHost());
+                return 'no';
                 break;
 
         }
     }
-
-/*
-    public function getClass(string $value)
-    {
-        $result = $this->extract->parse($value);
-
-        switch(true)
-        {
-            case $result->isValidDomain() && $result->getFullHost() === $value:
-
-                return "domain";
-                break;
-
-            case $result->isValidDomain():
-
-                return "url";
-                break;
-
-            case $result->isIp():
-
-                return "ip";
-                break;
-
-            default:
-
-                return "undefined";
-
-        }
-    }
-*/
 }

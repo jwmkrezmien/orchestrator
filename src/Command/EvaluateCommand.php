@@ -18,6 +18,7 @@ use App\Service\WebobjectClassifier;
 use App\Service\WebobjectConverter;
 
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableCell;
 use Symfony\Component\Console\Helper\TableSeparator;
 
 class EvaluateCommand extends Command
@@ -33,7 +34,7 @@ class EvaluateCommand extends Command
 
     protected function configure()
     {
-        $this->setName('app:evaluate')
+        $this->setName('orchestrator:evaluate')
              ->setDescription('Evaluate(s) an individual object or a list of objects provided in a plain-text file.')
              ->setHelp('This command evaluates an individual object or a list of objects.')
 
@@ -65,43 +66,31 @@ class EvaluateCommand extends Command
         if($input->getOption('file'))
         {
             // parse the provided object into an array and skip any empty lines
-            //$content = file($input->getArgument('object'), FILE_SKIP_EMPTY_LINES);
             $content = array_values(array_filter(file($input->getArgument('object'), FILE_SKIP_EMPTY_LINES), "trim"));
 
+            // if there is any content in the file
             if($content)
             {
+                // then run through each line and
                 foreach($content as $object)
                 {
-                    $object = trim($object);
+                    // trim any spacing from the input and prepare a new row that depicts the results
+                    $this->prepareRow($output, trim($object));
 
-                    $class = $this->getClass($object);
-
-                    array_push($this->objects[$class], array($object));
                 }
 
+                // draw the actual table to stdout
                 $this->drawTable($output);
+
             }
 
+        // if the file flag was not set then evaluate the provided input directly
         }else{
 
-            $object = trim($input->getArgument('object'));
+            // trim any spacing from the input
+            $this->prepareRow($output, trim($input->getArgument('object')));
 
-            $class = $this->getClass($object);
-
-            array_push($this->objects[$class], array($object));
-
-            $converter = new WebobjectConverter($object);
-// Test >>
-
-            $output->writeln('Subdomain: '. $converter->getSubdomain());
-            $output->writeln('Hostname: '. $converter->getHostname());
-            $output->writeln('Suffix: '. $converter->getSuffix());
-            $output->writeln('Registrable Domain: '. $converter->getRegistrableDomain());
-            $output->writeln('Full Host: '. $converter->getFullHost());
-            $output->writeln('IP address: '. var_dump($converter->getIp()));
-
-// Test <<
-
+            // draw the actual table to stdout
             $this->drawTable($output);
         }
 
@@ -128,12 +117,51 @@ class EvaluateCommand extends Command
         // $output->writeln('Evaluating: '. $input->getArgument('object'));
     }
 
+    private function prepareRow(OutputInterface $output, string $object)
+    {
+        // evaluate the object and see to what type of object it is
+        $class = $this->getClass($object);
+
+        // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
+        $converter = new WebobjectConverter($object);
+
+        // add the object to the array of that specific object class
+        // the actual output depends on whether the verbosity parameter has been set: verbose
+        array_push($this->objects[$class], $output->isVerbose() ? array(
+
+            $object,
+            $converter->getSubdomain() ? $converter->getSubdomain() : '-',
+            $converter->getHostname() ? $converter->getHostname() : '-',
+            $converter->getSuffix() ? $converter->getSuffix() : '-',
+            $converter->getRegistrableDomain() ? $converter->getRegistrableDomain() : '-',
+            $converter->getIp() ? $converter->getIp() : '-'
+
+            // the actual output depends on whether the verbosity parameter has been set: non-verbose
+        ) : array(
+
+            $object
+
+        ));
+    }
+
     private function drawTable(OutputInterface $output)
     {
         $section = $output->section();
 
         $table = new Table($section);
-        $table->setHeaders(array(strtoupper('automated object evaluation - results')));
+        $table->setHeaders(array(
+
+            $output->isVerbose() ?
+
+            array(new TableCell(
+                strtoupper('automated object evaluation - results'),
+                array('colspan' => 6)
+            )) :
+
+            array(
+                strtoupper('automated object evaluation - results')
+            )
+        ));
 
         $i = 0;
 
@@ -143,8 +171,19 @@ class EvaluateCommand extends Command
             {
                 if ($i > 0) $table->addRows(array(new TableSeparator()));
 
-                $table->addRows(array(
-                    array('TYPE: ' . strtoupper($type) . ' (' . count($this->objects[$type]) . ' OBJECT' . (count($this->objects[$type]) > 1 ? 'S' : '') . ')')
+                $table->addRows($output->isVerbose() ? array(
+                    array(
+                        'TYPE: ' . strtoupper($type) . ' (' . count($this->objects[$type]) . ' OBJECT' . (count($this->objects[$type]) > 1 ? 'S' : '') . ')',
+                        'SUBDOMAIN',
+                        'HOST',
+                        'SUFFIX',
+                        'REGISTRABLE DOMAIN',
+                        'IP'
+                    )
+                ) : array(
+                    array(
+                        'TYPE: ' . strtoupper($type) . ' (' . count($this->objects[$type]) . ' OBJECT' . (count($this->objects[$type]) > 1 ? 'S' : '') . ')',
+                    )
                 ));
                 $table->addRows(array(new TableSeparator()));
                 $table->addRows($this->objects[$type]);
