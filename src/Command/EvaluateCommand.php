@@ -14,20 +14,21 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 use Symfony\Component\DomCrawler\Crawler;
 
-use App\Service\WebobjectClassifier;
-use App\Service\WebobjectConverter;
+use App\Service\Webobject\Converter;
 
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableCell;
 use Symfony\Component\Console\Helper\TableSeparator;
 
+use App\Entity\Webobject;
+
 class EvaluateCommand extends Command
 {
-    private $objects = array();
+    private $tableSection = array();
 
     private $types = array(
         'url',
-        'domain',
+        'host',
         'ip',
         'undefined'
     );
@@ -43,6 +44,7 @@ class EvaluateCommand extends Command
                  InputArgument::REQUIRED,
                  'This can either be an IP address, a domain name or a plain-text file'
              )
+
              ->addOption(
                  'file',
                  'f',
@@ -50,17 +52,17 @@ class EvaluateCommand extends Command
                  'Provide a valid file name as the command\'s input'
              )
         ;
+
+        // set empty arrays for url, ip and domain objects
+        $this->tableSection['url']  = array();
+        $this->tableSection['ip'] = array();
+        $this->tableSection['host'] = array();
+        $this->tableSection['undefined'] = array();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->writeln('');
-
-        // set empty arrays for url, ip and domain objects
-        $this->objects['url']  = array();
-        $this->objects['ip'] = array();
-        $this->objects['domain'] = array();
-        $this->objects['undefined'] = array();
 
         // check whether the file flag was set
         if($input->getOption('file'))
@@ -74,9 +76,14 @@ class EvaluateCommand extends Command
                 // then run through each line and
                 foreach($content as $object)
                 {
-                    // trim any spacing from the input and prepare a new row that depicts the results
-                    $this->prepareRow($output, trim($object));
+                    // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
+                    $converter = new Converter(trim($object));
 
+                    // get the converted Webobject from the Converter object
+                    $webobject = $converter->getWebobject();
+
+                    // trim any spacing from the input and prepare a new row that depicts the results
+                    $this->prepareRow($output, $converter, $webobject);
                 }
 
                 // draw the actual table to stdout
@@ -87,8 +94,14 @@ class EvaluateCommand extends Command
         // if the file flag was not set then evaluate the provided input directly
         }else{
 
+            // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
+            $converter = new Converter(trim($input->getArgument('object')));
+
+            // get the converted Webobject from the Converter object
+            $webobject = $converter->getWebobject();
+
             // trim any spacing from the input
-            $this->prepareRow($output, trim($input->getArgument('object')));
+            $this->prepareRow($output, $converter, $webobject);
 
             // draw the actual table to stdout
             $this->drawTable($output);
@@ -111,94 +124,151 @@ class EvaluateCommand extends Command
 
 
 */
-
-        // $output->writeln('File exists: '. (file_exists($input->getArgument('object')) ? 'Yes' : 'No'));
-
-        // $output->writeln('Evaluating: '. $input->getArgument('object'));
     }
 
-    private function prepareRow(OutputInterface $output, string $object)
+    private function prepareRow(OutputInterface $output, Converter $converter, Webobject $webobject)
     {
-        // evaluate the object and see to what type of object it is
-        $class = $this->getClass($object);
+        switch(true)
+        {
+            case $output->isVeryVerbose():
 
-        // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
-        $converter = new WebobjectConverter($object);
+                $columns = array(
+
+                    $converter->getInitialValue(),
+                    $webobject->getSubdomain() ? $webobject->getSubdomain() : '-',
+                    $webobject->getHostname() ? $webobject->getHostname() : '-',
+                    $webobject->getSuffix() ? $webobject->getSuffix() : '-',
+                    $webobject->getRegistrableDomain() ? $webobject->getRegistrableDomain() : '-',
+                    $webobject->getIp() ? $webobject->getIp() : '-'
+
+                );
+
+                break;
+
+            case $output->isVerbose():
+
+                $columns = array(
+
+                    $converter->getInitialValue(),
+                    $webobject->getFullHost() ? $webobject->getFullHost() : '-'
+
+                );
+
+                break;
+
+            default:
+
+                $columns = array(
+
+                    $converter->getInitialValue()
+
+                );
+
+        }
 
         // add the object to the array of that specific object class
-        // the actual output depends on whether the verbosity parameter has been set: verbose
-        array_push($this->objects[$class], $output->isVerbose() ? array(
-
-            $object,
-            $converter->getSubdomain() ? $converter->getSubdomain() : '-',
-            $converter->getHostname() ? $converter->getHostname() : '-',
-            $converter->getSuffix() ? $converter->getSuffix() : '-',
-            $converter->getRegistrableDomain() ? $converter->getRegistrableDomain() : '-',
-            $converter->getIp() ? $converter->getIp() : '-'
-
-            // the actual output depends on whether the verbosity parameter has been set: non-verbose
-        ) : array(
-
-            $object
-
-        ));
+        // the actual output depends on whether the verbosity parameter has been set
+        array_push($this->tableSection[$webobject->getClass()], $columns);
     }
 
     private function drawTable(OutputInterface $output)
     {
+        // obtain a section to draw the table in
         $section = $output->section();
 
+        // get a Table instance
         $table = new Table($section);
-        $table->setHeaders(array(
 
-            $output->isVerbose() ?
+        switch (true)
+        {
+            case $output->isVeryVerbose():
 
-            array(new TableCell(
-                strtoupper('automated object evaluation - results'),
-                array('colspan' => 6)
-            )) :
+                $columns = array(new TableCell(
+                    strtoupper('automated object evaluation - results'),
+                    array('colspan' => 6)
+                ));
 
-            array(
-                strtoupper('automated object evaluation - results')
-            )
-        ));
+                break;
+
+            case $output->isVerbose():
+
+                $columns = array(new TableCell(
+                    strtoupper('automated object evaluation - results'),
+                    array('colspan' => 2)
+                ));
+
+                break;
+
+            default:
+
+                $columns = array(
+                    strtoupper('automated object evaluation - results')
+                );
+        }
+
+        // set the header of the table (and span the cell over 6 cells, in case verbosity is set)
+        $table->setHeaders(array($columns));
 
         $i = 0;
 
+        // cycle through the types
         foreach ($this->types as $type)
         {
-            if (count($this->objects[$type]) > 0)
+            // for each type, count the number of objects classified as such
+            if (count($this->tableSection[$type]) > 0)
             {
+                // if part of the table has already been drawn, and this is a subsequent section, draw a table seperator
                 if ($i > 0) $table->addRows(array(new TableSeparator()));
 
-                $table->addRows($output->isVerbose() ? array(
-                    array(
-                        'TYPE: ' . strtoupper($type) . ' (' . count($this->objects[$type]) . ' OBJECT' . (count($this->objects[$type]) > 1 ? 'S' : '') . ')',
-                        'SUBDOMAIN',
-                        'HOST',
-                        'SUFFIX',
-                        'REGISTRABLE DOMAIN',
-                        'IP'
-                    )
-                ) : array(
-                    array(
-                        'TYPE: ' . strtoupper($type) . ' (' . count($this->objects[$type]) . ' OBJECT' . (count($this->objects[$type]) > 1 ? 'S' : '') . ')',
-                    )
-                ));
+                switch(true)
+                {
+                    case $output->isVeryVerbose():
+
+                        $columns = array(
+                            array(
+                                'TYPE: ' . strtoupper($type) . ' (' . count($this->tableSection[$type]) . ' OBJECT' . (count($this->tableSection[$type]) > 1 ? 'S' : '') . ')',
+                                'SUBDOMAIN',
+                                'HOST',
+                                'SUFFIX',
+                                'REGISTRABLE DOMAIN',
+                                'IP'
+                            )
+                        );
+
+                        break;
+
+                    case $output->isVerbose():
+
+                        $columns = array(
+                            array(
+                                'TYPE: ' . strtoupper($type) . ' (' . count($this->tableSection[$type]) . ' OBJECT' . (count($this->tableSection[$type]) > 1 ? 'S' : '') . ')',
+                                'FULL HOST'
+                            )
+                        );
+
+                        break;
+
+                    default:
+
+                        $columns = array(
+                            array(
+                                'TYPE: ' . strtoupper($type) . ' (' . count($this->tableSection[$type]) . ' OBJECT' . (count($this->tableSection[$type]) > 1 ? 'S' : '') . ')',
+                            )
+                        );
+                }
+
+                // define the row of subheaders (depending on verbosity, this encompasses 6 columns)
+                $table->addRows($columns);
+
+                // add a table seperator and the objects
                 $table->addRows(array(new TableSeparator()));
-                $table->addRows($this->objects[$type]);
+                $table->addRows($this->tableSection[$type]);
 
                 $i++;
             }
         }
 
+        // render the table to stdout
         $table->render();
-    }
-
-
-    private function getClass(string $object)
-    {
-        $objectClassifier = new WebobjectClassifier();
-        return $objectClassifier->getClass($object);
     }
 }

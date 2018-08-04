@@ -19,27 +19,23 @@ class Webobject
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $name;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=20)
      */
+    private $class;
+
     private $subdomain;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
     private $hostname;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
     private $suffix;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $registrabledomain;
 
@@ -50,7 +46,7 @@ class Webobject
 
     /**
      * @Gedmo\Versioned
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $ip;
 
@@ -70,9 +66,21 @@ class Webobject
         return $this->name;
     }
 
-    public function setName(string $name): self
+    public function setName(string $name = null): self
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getClass(): ?string
+    {
+        return $this->class;
+    }
+
+    public function setClass(string $class): self
+    {
+        $this->class = $class;
 
         return $this;
     }
@@ -82,7 +90,7 @@ class Webobject
         return $this->subdomain;
     }
 
-    public function setSubdomain(string $subdomain): self
+    public function setSubdomain(string $subdomain = null): self
     {
         $this->subdomain = $subdomain;
 
@@ -106,7 +114,7 @@ class Webobject
         return $this->suffix;
     }
 
-    public function setSuffix(string $suffix): self
+    public function setSuffix(string $suffix = null): self
     {
         $this->suffix = $suffix;
 
@@ -118,7 +126,7 @@ class Webobject
         return $this->registrabledomain;
     }
 
-    public function setRegistrableDomain(string $registrabledomain): self
+    public function setRegistrableDomain(string $registrabledomain = null): self
     {
         $this->registrabledomain = $registrabledomain;
 
@@ -142,7 +150,7 @@ class Webobject
         return $this->ip;
     }
 
-    public function setIp(string $ip): self
+    public function setIp(string $ip = null): self
     {
         $this->ip = $ip;
 
