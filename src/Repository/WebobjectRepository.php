@@ -19,32 +19,21 @@ class WebobjectRepository extends ServiceEntityRepository
         parent::__construct($registry, Webobject::class);
     }
 
-//    /**
-//     * @return Webobject[] Returns an array of Webobject objects
-//     */
-    /*
-    public function findByExampleField($value)
-    {
-        return $this->createQueryBuilder('w')
-            ->andWhere('w.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('w.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+    /**
+     * @return Webobject[] Returns an array of named Webobject objects
+     */
 
-    /*
-    public function findOneBySomeField($value): ?Webobject
+    public function findNamed() : ?array
     {
         return $this->createQueryBuilder('w')
-            ->andWhere('w.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+                    ->where('w.ip != w.fullhost')
+                    ->orWhere('w.ip IS NULL')
+                    ->getQuery()
+                    ->getResult();
     }
-    */
+
+    public function getStoredHosts() : ?array
+    {
+        return $this->getEntityManager()->createQuery('SELECT DISTINCT w.fullhost FROM App\Entity\Webobject w')->getScalarResult();
+    }
 }

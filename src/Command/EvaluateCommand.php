@@ -36,13 +36,13 @@ class EvaluateCommand extends Command
     protected function configure()
     {
         $this->setName('orchestrator:evaluate')
-             ->setDescription('Evaluate(s) an individual object or a list of objects provided in a plain-text file.')
+             ->setDescription('Evaluate an individual object or a list of objects provided in a plain-text file')
              ->setHelp('This command evaluates an individual object or a list of objects.')
 
              ->addArgument(
                  'object',
                  InputArgument::REQUIRED,
-                 'This can either be an IP address, a domain name or a plain-text file'
+                 'This can either be an IP address, a domain name or a reference to a plain-text file'
              )
 
              ->addOption(

@@ -27,8 +27,9 @@ class AddCommand extends Command
     private $updater;
 
     private $types = array(
-        true,
-        false
+        'valid',
+        'duplicate',
+        'invalid'
     );
 
     public function __construct(Updater $updater)
@@ -41,26 +42,34 @@ class AddCommand extends Command
     protected function configure()
     {
         $this->setName('orchestrator:repository:add')
-            ->setDescription('Add a new individual object directly (or from a list of objects provided in a plain-text) file to the repository.')
+            ->setDescription('Add a new individual object to the repository or ingest objects from a list provided in a plain-text file')
             ->setHelp('Only objects with a new and valid full host reference are added to the repository. The validity of the objects can be assessed with the orchestrator:evaluate command.')
 
             ->addArgument(
                 'object',
                 InputArgument::REQUIRED,
-                'This can either be an IP address, an URL or a full host name provided directly or in a plain-text file.'
+                'This can either be an IP address, an URL, a full host name (either entered directly or ingested through a plain-text file'
             )
 
             ->addOption(
                 'file',
                 'f',
                 InputOption::VALUE_NONE,
-                'Provide a valid file name as the command\'s input.'
+                'Provide a valid file name as the command\'s input'
+            )
+
+            ->addOption(
+                'no-flush',
+                null,
+                InputOption::VALUE_NONE,
+                'Prevents that new, valid objects are added to the database'
             )
         ;
 
         // prepare the arrays within the table section array for both successfully objects and unsuccessful attempts
-        $this->tableSection[true]  = array(); // valid objects
-        $this->tableSection[false] = array(); // already in database or invalid object
+        $this->tableSection['valid']  = array(); // valid objects
+        $this->tableSection['invalid'] = array(); // already in database or invalid object
+        $this->tableSection['duplicate'] = array(); // already in database or invalid object
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -77,55 +86,69 @@ class AddCommand extends Command
                 // then run through each line and
                 foreach($content as $object)
                 {
-                    // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
-                    $converter = new Converter(trim($object));
+                    // evaluate whether the object will be added to the repository
+                    $this->evalObject($output, trim($object));
 
-                    // get a webobject from the converter
-                    $webobject = $converter->getWebobject();
-
-                    // get the converted Webobject from the Converter object and push it in to the Webobjects array
-                    $converter->getClass() !== 'undefined' ? $success = $this->updater->addWebobject($webobject) : $success = false;
-
-                    if ($output->isVerbose()) $this->prepareRow($output, $converter, $webobject, $success);
                 }
-
-                // draw the actual table to stdout
-                $this->drawTable($output);
-
             }
 
             // if the file flag was not set then evaluate the provided input directly
         }else{
 
-            // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
-            $converter = new Converter(trim($input->getArgument('object')));
-
-            // get a webobject from the converter
-            $webobject = $converter->getWebobject();
-
-            // get the converted Webobject from the Converter object and push it in to the Webobjects array
-            $converter->getClass() !== 'undefined' ? $success = $this->updater->addWebobject($webobject) : $success = false;
-
-            if ($output->isVerbose()) $this->prepareRow($output, $converter, $webobject, $success);
-
-            // draw the actual table to stdout
-            $this->drawTable($output);
+            // evaluate whether the object will be added to the repository
+            $this->evalObject($output, trim($input->getArgument('object')));
         }
 
-        $this->updater->flush();
+        // draw the actual table to stdout
+        if(($output->isVerbose() && count($this->tableSection['valid']) > 0) || $output->isVeryVerbose()) $this->drawTable($output);
+
+        if (count($this->tableSection['valid']) > 0 && !$input->getOption('no-flush')) $this->updater->flush();
+
+        (!$input->getOption('no-flush') && count($this->tableSection['valid']) > 0) ?
+            $output->writeln('Operation successful: <fg=green>' . count($this->tableSection['valid']) . '</> object'. (count($this->tableSection['valid']) !== 1  ? 's' : '') .' are new to the repository <fg=green>(successfully added)</>.') :
+            $output->writeln('Operation successful: ' . count($this->tableSection['valid']) . ' objects are new to the repository.');
     }
 
-    private function prepareRow(OutputInterface $output, Converter $converter, Webobject $webobject, bool $success)
+    private function evalObject(OutputInterface $output, string $object)
     {
+        // obtain a Webobject Converter class to obtain additional information (e.g. subdomain, hostname, suffix etc.)
+        $converter = new Converter($object);
+
+        // get a webobject from the converter
+        $webobject = $converter->getWebobject();
+
+        // get the converted Webobject from the Converter object and push it in to the Webobjects array
+        $converter->getClass() !== 'undefined' ?
+            $type = ($this->updater->addWebobject($webobject) ? 'valid' : 'duplicate') :
+            $type = 'invalid';
+
+        $this->prepareRow($output, $converter, $webobject, $type);
+
+        return $type;
+    }
+
+    private function prepareRow(OutputInterface $output, Converter $converter, Webobject $webobject, string $type)
+    {
+        $columns = array();
+
         switch(true)
         {
+            case $output->isVeryVerbose():
+
+                $columns = array(
+
+                    sprintf('<fg=%s>%s</>' , 'red', $converter->getInitialValue()),
+                    $webobject->getFullHost() ? $webobject->getFullHost() : '-',
+
+                );
+
+                break;
+
             case $output->isVerbose():
 
                 $columns = array(
 
                     $converter->getInitialValue(),
-                    $webobject->getFullHost() ? $webobject->getFullHost() : '-',
-                    $success === true ? 'Yes' : ($converter->getClass() !== 'undefined' ?  'No, already in repository' : 'No, invalid input')
 
                 );
 
@@ -133,7 +156,7 @@ class AddCommand extends Command
         }
 
         // add the object to the array assessed objects
-        array_push($this->tableSection[$success], $columns);
+        array_push($this->tableSection[$type], $columns);
     }
 
     private function drawTable(OutputInterface $output)
@@ -148,11 +171,19 @@ class AddCommand extends Command
 
         switch (true)
         {
-            case $output->isVerbose():
+            case $output->isVeryVerbose():
 
                 $columns = array(new TableCell(
                     strtoupper('REPOSITORY UPDATE'),
-                    array('colspan' => 3)
+                    array('colspan' => 2)
+                ));
+
+                break;
+
+            case $output->isVerbose():
+
+                $columns = array(new TableCell(
+                    strtoupper('REPOSITORY UPDATE')
                 ));
 
                 break;
@@ -166,35 +197,47 @@ class AddCommand extends Command
         // cycle through the types
         foreach ($this->types as $type)
         {
-            // for each type, count the number of objects classified as such
-            if (count($this->tableSection[$type]) > 0)
+            if ($output->isVeryVerbose() || ($output->isVerbose() && $type === 'valid'))
             {
-                // if part of the table has already been drawn, and this is a subsequent section, draw a table seperator
-                if ($i > 0) $table->addRows(array(new TableSeparator()));
-
-                switch(true)
+                // for each type, count the number of objects classified as such
+                if (count($this->tableSection[$type]) > 0)
                 {
-                    case $output->isVerbose():
+                    // if part of the table has already been drawn, and this is a subsequent section, draw a table seperator
+                    if ($i > 0) $table->addRows(array(new TableSeparator()));
 
-                        $columns = array(
-                            array(
-                                'OBJECTS',
-                                'FULL HOST',
-                                'ADDED?'
-                            )
-                        );
+                    switch(true)
+                    {
+                        case $output->isVeryVerbose():
 
-                        break;
+                            $columns = array(
+                                array(
+                                    'TYPE: ' . strtoupper($type) . ' (' . count($this->tableSection[$type]) . ' OBJECT' . (count($this->tableSection[$type]) > 1 ? 'S' : '') . ')',
+                                    'FULL HOST',
+                                )
+                            );
+
+                            break;
+
+                        case $output->isVerbose():
+
+                            $columns = array(
+                                array(
+                                    'TYPE: ' . strtoupper($type) . ' (' . count($this->tableSection[$type]) . ' OBJECT' . (count($this->tableSection[$type]) > 1 ? 'S' : '') . ')'
+                                )
+                            );
+
+                            break;
+                    }
+
+                    // define the row of subheaders (depending on verbosity, this encompasses 6 columns)
+                    $table->addRows($columns);
+
+                    // add a table seperator and the objects
+                    $table->addRows(array(new TableSeparator()));
+                    $table->addRows($this->tableSection[$type]);
+
+                    $i++;
                 }
-
-                // define the row of subheaders (depending on verbosity, this encompasses 6 columns)
-                $table->addRows($columns);
-
-                // add a table seperator and the objects
-                $table->addRows(array(new TableSeparator()));
-                $table->addRows($this->tableSection[$type]);
-
-                $i++;
             }
         }
 

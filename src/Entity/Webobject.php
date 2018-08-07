@@ -50,6 +50,8 @@ class Webobject
      */
     private $ip;
 
+    private $oldip = null;
+
     /**
      * @Gedmo\Slug(fields={"name"})
      * @ORM\Column(type="string", length=255)
@@ -152,9 +154,37 @@ class Webobject
 
     public function setIp(string $ip = null): self
     {
+        $this->isNewIp($ip);
+
         $this->ip = $ip;
 
         return $this;
+    }
+
+    public function getOldIp(): ?string
+    {
+        return $this->oldip;
+    }
+
+    public function setOldIp (string $ip = null): self
+    {
+        $this->oldip = $ip;
+
+        return $this;
+    }
+
+    private function isNewIp(string $ip = null) : ?bool
+    {
+        $this->setOldIp($this->getIp());
+
+        if ($ip !== $this->getIp())
+        {
+            return true;
+
+        }else{
+
+            return false;
+        }
     }
 
     public function getSlug(): ?string

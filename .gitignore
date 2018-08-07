@@ -25,3 +25,7 @@ yarn-error.log
 ###> PHPStorm - Project files ###
 /.idea
 ###< PHPStorm - Project files ###
+
+###> Scan results ###
+/scans
+###< Scan results ###
